@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FitTrack — Kyle</title>
+<title>FitTrack — Haley</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ─── RESET & TOKENS ─────────────────────────────── */
@@ -875,6 +875,7 @@ svg.ring-svg { transform: rotate(-90deg); }
       <button class="filter-btn active" onclick="filterHistory('all', this)">All</button>
       <button class="filter-btn" onclick="filterHistory('peloton', this)">Peloton</button>
       <button class="filter-btn" onclick="filterHistory('gym_monster', this)">Gym Monster</button>
+      <button class="filter-btn" onclick="filterHistory('walking', this)">Walking</button>
     </div>
     <div class="history-grid">
       <div class="card" style="grid-column:1/-1">
@@ -1614,6 +1615,8 @@ function renderHistoryTable(workouts) {
     ).join('');
     const eqTag = w.equipment === 'peloton'
       ? `<span class="eq-tag eq-peloton">🚴 Peloton</span>`
+      : w.equipement == 'walking'
+      ? `<span class="eq-tag" style="background:rgba(80,200,120,0.12);color:#50c878;border:1px solid rgba(80,200,120,0.3)">🚶 Walking</span>`
       : `<span class="eq-tag eq-gym">🏋 Gym Monster</span>`;
     const src = w.source !== 'manual'
       ? `<span class="source-tag source-auto">${w.source}</span>`
