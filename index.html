@@ -637,7 +637,7 @@ svg.ring-svg { transform: rotate(-90deg); }
 </div>
 
 <!-- ═══ LOGIN ═════════════════════════════════════ -->
-<div id="login-screen">
+<div id="login-screen" class="hidden">
   <div class="login-box">
     <div class="login-title">FITTRACK</div>
     <div class="login-sub">Your personal health dashboard</div>
@@ -1004,7 +1004,6 @@ let currentFilter = 'all';
 // INIT
 // ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
-  // Simulate brief loader
   await delay(1300);
   document.getElementById('loader').classList.add('hidden');
 
@@ -1012,11 +1011,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     showApp();
     await loadDashboard();
   } else {
+    // Only NOW show the login screen
     document.getElementById('login-screen').classList.remove('hidden');
   }
 });
-
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ─────────────────────────────────────────────────────
 // AUTH
