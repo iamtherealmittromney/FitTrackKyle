@@ -414,6 +414,7 @@ nav {
 .heatmap-cell.empty { background: transparent; }
 .heatmap-cell.peloton { background: rgba(232,50,76,0.7); }
 .heatmap-cell.gym_monster { background: rgba(62,184,255,0.7); }
+.heatmap-cell.walking { background: rgba(80,200,120,0.7); } 
 .heatmap-cell.both { background: linear-gradient(135deg, rgba(232,50,76,0.8) 50%, rgba(62,184,255,0.8) 50%); }
 .heatmap-cell.today { outline: 2px solid var(--lime); outline-offset: 1px; }
 .heatmap-legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
@@ -820,6 +821,7 @@ svg.ring-svg { transform: rotate(-90deg); }
           <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,rgba(232,50,76,0.8) 50%,rgba(62,184,255,0.8) 50%)"></div>Both</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--s2)"></div>Rest</div>
           <div class="legend-item"><div class="legend-dot" style="outline:2px solid var(--lime);outline-offset:1px;background:transparent"></div>Today</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(80,200,120,0.7)"></div>Walking</div>
         </div>
       </div>
 
@@ -903,6 +905,7 @@ svg.ring-svg { transform: rotate(-90deg); }
       <select class="modal-select" id="wk-equipment">
         <option value="peloton">🚴 Peloton</option>
         <option value="gym_monster">🏋 Gym Monster</option>
+        <option value="walking">🚶 Walking</option>
         <option value="both">Both</option>
       </select>
     </div>
@@ -1459,6 +1462,7 @@ function renderHeatmap() {
           if (eq.includes('peloton') && eq.includes('gym_monster')) cls += ' both';
           else if (eq.includes('peloton')) cls += ' peloton';
           else if (eq.includes('gym_monster')) cls += ' gym_monster';
+          else if (eq.includes('walking')) cls += ' walking'; 
         }
         if (ds === todayStr) cls += ' today';
         cell.className = cls;
@@ -1493,6 +1497,8 @@ function renderWorkoutRows(tbodyId, workouts) {
     ).join('');
     const eqTag = w.equipment === 'peloton'
       ? `<span class="eq-tag eq-peloton">🚴 Peloton</span>`
+      : w.equipment === 'walking'
+      ? `<span class="eq-tag" style="background:rgba(80,200,120,0.12);color:#50c878;border:1px solid rgba(80,200,120,0.3)">🚶 Walking</span>`
       : `<span class="eq-tag eq-gym">🏋 Gym Monster</span>`;
     const src = w.source !== 'manual'
       ? `<span class="source-tag source-auto">${w.source}</span>`
