@@ -1583,6 +1583,40 @@ function renderWeightChart() {
         ${deltaHtml}
       </div>`;
   }).join('');
+  const latestEntry = (dashData?.weight?.trend || [])[0];
+  renderBodyComp(latestEntry);
+}
+function renderBodyComp(entry) {
+    if (!entry) return;
+    const fields = [
+        { key: 'muscle_mass_lbs', label: 'Muscle Mass', unit: 'lbs', color: 'var(--blue)' },
+        { key: 'fat_ratio_pct',   label: 'Body Fat',    unit: '%',   color: 'var(--orange)' },
+        { key: 'fat_mass_lbs',    label: 'Fat Mass',    unit: 'lbs', color: 'var(--orange-dim)' },
+        { key: 'fat_free_mass_lbs', label: 'Fat Free', unit: 'lbs', color: 'var(--lime)' },
+        { key: 'bone_mass_lbs',   label: 'Bone Mass',  unit: 'lbs', color: 'var(--muted2)' },
+        { key: 'heart_pulse',     label: 'Heart Rate', unit: 'bpm', color: 'var(--pink)' },
+    ];
+
+    const rows = fields
+        .filter(f => entry[f.key] !== null && entry[f.key] !== undefined)
+        .map(f => `
+            <div class="weight-entry">
+                <span class="weight-entry-date">${f.label}</span>
+                <span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;
+                             letter-spacing:1px;color:${f.color}">
+                    ${parseFloat(entry[f.key]).toFixed(f.key === 'heart_pulse' ? 0 : 1)} ${f.unit}
+                </span>
+            </div>
+        `).join('');
+
+    if (rows) {
+        document.getElementById('weight-entries').insertAdjacentHTML('beforeend',
+            `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+                <div class="card-label" style="margin-bottom:8px">Body Composition</div>
+                ${rows}
+             </div>`
+        );
+    }
 }
 
 // ─────────────────────────────────────────────────────
