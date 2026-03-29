@@ -687,6 +687,25 @@ svg.ring-svg { transform: rotate(-90deg); }
 }
 .schedule-save-btn:hover { background: rgba(200,255,87,0.2); }
 
+/* ─── HEATMAP DATE NUMBERS ────────────────────────── */
+.heatmap-cell-inner {
+    width: 100%; height: 100%;
+    display: flex; align-items: flex-start;
+    justify-content: flex-end;
+    padding: 2px 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.42rem;
+    color: rgba(255,255,255,0.5);
+    line-height: 1;
+    border-radius: 4px;
+}
+.heatmap-cell.peloton .heatmap-cell-inner,
+.heatmap-cell.gym_monster .heatmap-cell-inner,
+.heatmap-cell.walking .heatmap-cell-inner,
+.heatmap-cell.both .heatmap-cell-inner {
+    color: rgba(255,255,255,0.7);
+}
+  
 </style>
 </head>
 <body>
@@ -907,14 +926,38 @@ svg.ring-svg { transform: rotate(-90deg); }
         </table>
       </div>
 
-      <!-- Weight chart -->
+      <!-- Weight + Body Comp -->
       <div class="card weight-chart-card">
-        <div class="card-label">Weight Trend</div>
+        <div class="card-label">Weight & Body Composition</div>
         <div class="mini-chart-wrap" id="weight-chart-wrap">
           <div class="chart-empty">No data yet</div>
         </div>
         <div class="weight-entries" id="weight-entries"></div>
+
+        <!-- Weekly body comp table -->
+        <div id="body-comp-table-wrap" style="margin-top:16px;display:none">
+          <div class="card-label" style="margin-bottom:8px">7-Day History</div>
+          <div style="overflow-x:auto">
+            <table class="workout-table" id="body-comp-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Weight</th>
+                  <th>Body Fat</th>
+                  <th>Muscle</th>
+                  <th>Fat Mass</th>
+                  <th>Fat Free</th>
+                  <th>Bone</th>
+                  <th>HR</th>
+                </tr>
+              </thead>
+              <tbody id="body-comp-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
+      
 
       <!-- Recovery -->
       <div class="card">
@@ -1261,6 +1304,7 @@ async function loadDashboard() {
     renderRings();
     renderBadges();
     renderRecovery();
+    renderBodyCompTable();
   } catch(e) {
     console.error('Dashboard load error:', e);
     showToast('Error loading data — check API connection');
@@ -1551,13 +1595,11 @@ function renderHeatmap() {
   today.setHours(0,0,0,0);
   const todayStr = dateStr(today);
 
-  // Go back 60 days, align to Sunday
   const start = new Date(today);
   start.setDate(start.getDate() - 59);
-  // Pad to Sunday
   while (start.getDay() !== 0) start.setDate(start.getDate() - 1);
 
-  const grid    = document.getElementById('heatmap-grid');
+  const grid = document.getElementById('heatmap-grid');
   grid.innerHTML = '';
 
   let d = new Date(start);
@@ -1566,29 +1608,37 @@ function renderHeatmap() {
     week.className = 'heatmap-week';
 
     for (let i = 0; i < 7; i++) {
-      const cell = document.createElement('div');
-      const ds   = dateStr(d);
+      const cell   = document.createElement('div');
+      const ds     = dateStr(d);
+      const dayNum = d.getDate();
 
       if (d > today) {
         cell.className = 'heatmap-cell empty';
       } else if (d < new Date(today.getTime() - 59 * 86400000)) {
         cell.className = 'heatmap-cell empty';
       } else {
-        const eq = lookup[ds];
-        let cls = 'heatmap-cell';
+        const eq  = lookup[ds];
+        let   cls = 'heatmap-cell';
+
         if (eq) {
           if (eq.includes('peloton') && eq.includes('gym_monster')) cls += ' both';
-          else if (eq.includes('peloton')) cls += ' peloton';
+          else if (eq.includes('peloton'))     cls += ' peloton';
           else if (eq.includes('gym_monster')) cls += ' gym_monster';
-          else if (eq.includes('walking')) cls += ' walking'; 
+          else if (eq.includes('walking'))     cls += ' walking';
         }
+
         if (ds === todayStr) cls += ' today';
         cell.className = cls;
-        cell.title = ds + (eq ? ` · ${eq.replace(',', ' + ')}` : ' · Rest');
+        cell.title     = ds + (eq ? ` · ${eq.replace(',', ' + ')}` : ' · Rest');
+
+        // Date number in corner of cell
+        cell.innerHTML = `<div class="heatmap-cell-inner">${dayNum}</div>`;
       }
+
       week.appendChild(cell);
       d.setDate(d.getDate() + 1);
     }
+
     grid.appendChild(week);
     if (d > today && d.getDay() === 0) break;
   }
@@ -1735,6 +1785,56 @@ function renderBodyComp(entry) {
         );
     }
 }
+async function renderBodyCompTable() {
+    try {
+        const entries = await api(`/weight/history/week/${userId}`);
+        if (!entries || !entries.length) return;
+
+        // Check if any entry has body comp data
+        const hasComp = entries.some(e =>
+            e.muscle_mass_lbs || e.fat_ratio_pct || e.fat_mass_lbs
+        );
+        if (!hasComp) return;
+
+        const wrap = document.getElementById('body-comp-table-wrap');
+        const tbody = document.getElementById('body-comp-tbody');
+        wrap.style.display = 'block';
+
+        tbody.innerHTML = entries.map(e => {
+            const auto = e.source === 'auto'
+                ? '<span class="auto-pill">AUTO</span>' : '';
+            return `<tr>
+                <td class="workout-date">
+                    ${fmtDate(e.logged_at)}${auto}
+                </td>
+                <td class="workout-focus">
+                    ${parseFloat(e.weight_lbs).toFixed(1)} lbs
+                </td>
+                <td class="workout-duration" style="color:var(--orange)">
+                    ${e.fat_ratio_pct ? parseFloat(e.fat_ratio_pct).toFixed(1) + '%' : '—'}
+                </td>
+                <td class="workout-duration" style="color:var(--blue)">
+                    ${e.muscle_mass_lbs ? parseFloat(e.muscle_mass_lbs).toFixed(1) + ' lbs' : '—'}
+                </td>
+                <td class="workout-duration">
+                    ${e.fat_mass_lbs ? parseFloat(e.fat_mass_lbs).toFixed(1) + ' lbs' : '—'}
+                </td>
+                <td class="workout-duration" style="color:var(--lime)">
+                    ${e.fat_free_mass_lbs ? parseFloat(e.fat_free_mass_lbs).toFixed(1) + ' lbs' : '—'}
+                </td>
+                <td class="workout-duration">
+                    ${e.bone_mass_lbs ? parseFloat(e.bone_mass_lbs).toFixed(1) + ' lbs' : '—'}
+                </td>
+                <td class="workout-duration" style="color:var(--pink)">
+                    ${e.heart_pulse ? e.heart_pulse + ' bpm' : '—'}
+                </td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        console.error('Body comp table error:', e);
+    }
+}
+  
 
 // ─────────────────────────────────────────────────────
 // HISTORY TAB
@@ -1766,7 +1866,7 @@ function renderHistoryTable(workouts) {
     ).join('');
     const eqTag = w.equipment === 'peloton'
       ? `<span class="eq-tag eq-peloton">🚴 Peloton</span>`
-      : w.equipement == 'walking'
+      : w.equipment == 'walking'
       ? `<span class="eq-tag" style="background:rgba(80,200,120,0.12);color:#50c878;border:1px solid rgba(80,200,120,0.3)">🚶 Walking</span>`
       : `<span class="eq-tag eq-gym">🏋 Gym Monster</span>`;
     const src = w.source !== 'manual'
