@@ -932,6 +932,33 @@ svg.ring-svg { transform: rotate(-90deg); }
         <div class="mini-chart-wrap" id="weight-chart-wrap">
           <div class="chart-empty">No data yet</div>
         </div>
+
+        <!-- Body Composition 7-Day History -->
+      <div class="card" style="grid-column:1/4">
+        <div class="card-accent-bar" style="background:var(--blue)"></div>
+        <div class="card-label">Body Composition — Last 7 Days</div>
+        <div id="body-comp-table-wrap">
+          <div style="overflow-x:auto;margin-top:8px">
+            <table class="workout-table" id="body-comp-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th style="color:var(--blue)">Weight</th>
+                  <th style="color:var(--orange)">Body Fat %</th>
+                  <th style="color:var(--blue)">Muscle Mass</th>
+                  <th style="color:var(--orange)">Fat Mass</th>
+                  <th style="color:var(--lime)">Fat Free</th>
+                  <th style="color:var(--muted2)">Bone Mass</th>
+                </tr>
+              </thead>
+              <tbody id="body-comp-tbody">
+                <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+        
         <div class="weight-entries" id="weight-entries"></div>
 
         <!-- Weekly body comp table -->
@@ -1757,87 +1784,63 @@ function renderWeightChart() {
         ${deltaHtml}
       </div>`;
   }).join('');
-  const latestEntry = (dashData?.weight?.trend || [])[0];
-  renderBodyComp(latestEntry);
 }
-function renderBodyComp(entry) {
-    if (!entry) return;
-    const fields = [
-        { key: 'muscle_mass_lbs', label: 'Muscle Mass', unit: 'lbs', color: 'var(--blue)' },
-        { key: 'fat_ratio_pct',   label: 'Body Fat',    unit: '%',   color: 'var(--orange)' },
-        { key: 'fat_mass_lbs',    label: 'Fat Mass',    unit: 'lbs', color: 'var(--orange-dim)' },
-        { key: 'fat_free_mass_lbs', label: 'Fat Free', unit: 'lbs', color: 'var(--lime)' },
-        { key: 'bone_mass_lbs',   label: 'Bone Mass',  unit: 'lbs', color: 'var(--muted2)' },
-        { key: 'heart_pulse',     label: 'Heart Rate', unit: 'bpm', color: 'var(--pink)' },
-    ];
 
-    const rows = fields
-        .filter(f => entry[f.key] !== null && entry[f.key] !== undefined)
-        .map(f => `
-            <div class="weight-entry">
-                <span class="weight-entry-date">${f.label}</span>
-                <span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;
-                             letter-spacing:1px;color:${f.color}">
-                    ${parseFloat(entry[f.key]).toFixed(f.key === 'heart_pulse' ? 0 : 1)} ${f.unit}
-                </span>
-            </div>
-        `).join('');
-
-    if (rows) {
-        document.getElementById('weight-entries').insertAdjacentHTML('beforeend',
-            `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-                <div class="card-label" style="margin-bottom:8px">Body Composition</div>
-                ${rows}
-             </div>`
-        );
-    }
-}
 async function renderBodyCompTable() {
+    const tbody = document.getElementById('body-comp-tbody');
     try {
         const entries = await api(`/weight/history/week/${userId}`);
-        if (!entries || !entries.length) return;
+        if (!entries || !entries.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No data this week — step on the scale</td></tr>';
+            return;
+        }
 
-        // Check if any entry has body comp data
         const hasComp = entries.some(e =>
             e.muscle_mass_lbs || e.fat_ratio_pct || e.fat_mass_lbs
         );
-        if (!hasComp) return;
-
-        const wrap = document.getElementById('body-comp-table-wrap');
-        const tbody = document.getElementById('body-comp-tbody');
-        wrap.style.display = 'block';
+        if (!hasComp) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No body composition data yet</td></tr>';
+            return;
+        }
 
         tbody.innerHTML = entries.map(e => {
             const auto = e.source === 'auto'
                 ? '<span class="auto-pill">AUTO</span>' : '';
+
+            const fmt = (val, decimals = 1, unit = 'lbs') =>
+                val !== null && val !== undefined
+                    ? `${parseFloat(val).toFixed(decimals)} ${unit}`
+                    : '<span style="color:var(--muted)">—</span>';
+
             return `<tr>
                 <td class="workout-date">
                     ${fmtDate(e.logged_at)}${auto}
                 </td>
                 <td class="workout-focus">
-                    ${parseFloat(e.weight_lbs).toFixed(1)} lbs
+                    ${fmt(e.weight_lbs)}
                 </td>
-                <td class="workout-duration" style="color:var(--orange)">
-                    ${e.fat_ratio_pct ? parseFloat(e.fat_ratio_pct).toFixed(1) + '%' : '—'}
+                <td style="color:var(--orange);font-family:'JetBrains Mono',monospace;font-size:0.72rem">
+                    ${e.fat_ratio_pct !== null && e.fat_ratio_pct !== undefined
+                        ? parseFloat(e.fat_ratio_pct).toFixed(1) + '%'
+                        : '<span style="color:var(--muted)">—</span>'}
                 </td>
-                <td class="workout-duration" style="color:var(--blue)">
-                    ${e.muscle_mass_lbs ? parseFloat(e.muscle_mass_lbs).toFixed(1) + ' lbs' : '—'}
+                <td style="color:var(--blue);font-family:'JetBrains Mono',monospace;font-size:0.72rem">
+                    ${fmt(e.muscle_mass_lbs)}
                 </td>
-                <td class="workout-duration">
-                    ${e.fat_mass_lbs ? parseFloat(e.fat_mass_lbs).toFixed(1) + ' lbs' : '—'}
+                <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem">
+                    ${fmt(e.fat_mass_lbs)}
                 </td>
-                <td class="workout-duration" style="color:var(--lime)">
-                    ${e.fat_free_mass_lbs ? parseFloat(e.fat_free_mass_lbs).toFixed(1) + ' lbs' : '—'}
+                <td style="color:var(--lime);font-family:'JetBrains Mono',monospace;font-size:0.72rem">
+                    ${fmt(e.fat_free_mass_lbs)}
                 </td>
-                <td class="workout-duration">
-                    ${e.bone_mass_lbs ? parseFloat(e.bone_mass_lbs).toFixed(1) + ' lbs' : '—'}
-                </td>
-                <td class="workout-duration" style="color:var(--pink)">
-                    ${e.heart_pulse ? e.heart_pulse + ' bpm' : '—'}
+                <td style="color:var(--muted2);font-family:'JetBrains Mono',monospace;font-size:0.72rem">
+                    ${fmt(e.bone_mass_lbs)}
                 </td>
             </tr>`;
         }).join('');
+
     } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Error loading data</td></tr>';
         console.error('Body comp table error:', e);
     }
 }
