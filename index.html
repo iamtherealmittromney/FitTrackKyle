@@ -1014,7 +1014,14 @@ svg.ring-svg { transform: rotate(-90deg); }
         <button class="complete-btn" onclick="syncPeloton()" id="peloton-sync-btn">
           🚴 Sync Peloton Now
         </button>
+        <button class="complete-btn"
+          style="background:var(--orange);box-shadow:0 4px 20px rgba(255,112,67,0.3)"
+          onclick="syncStrava()" id="strava-sync-btn">
+          🏋 Sync Gym Monster Now
+        </button>
         <span id="peloton-sync-status" style="font-family:'JetBrains Mono',monospace;
+          font-size:0.75rem;color:var(--muted2)"></span>
+        <span id="strava-sync-status" style="font-family:'JetBrains Mono',monospace;
           font-size:0.75rem;color:var(--muted2)"></span>
       </div>
     </div>
