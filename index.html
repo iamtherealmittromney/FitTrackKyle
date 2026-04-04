@@ -847,177 +847,79 @@ svg.ring-svg { transform: rotate(-90deg); }
     // ─────────────────────────────────────────────────────
     // MUSCLE RECOVERY MAP
     // ─────────────────────────────────────────────────────
-    
-    const MUSCLE_KEYWORDS = {
-      chest:      ['chest','bench','press','pec','push up','pushup','fly','flye'],
-      front_delt: ['shoulder','ohp','overhead','lateral raise','front raise','military'],
-      rear_delt:  ['rear delt','face pull','reverse fly','rear shoulder','bent over raise'],
-      bicep:      ['bicep','curl','hammer curl','chin up','chinup'],
-      tricep:     ['tricep','skull crusher','pushdown','dip','close grip','extension'],
-      forearm:    ['forearm','wrist','grip'],
-      trap:       ['trap','shrug','upright row'],
-      lat:        ['lat','pull up','pullup','pulldown','row','back','t-bar'],
-      lower_back: ['lower back','deadlift','rdl','romanian','hyperextension','good morning'],
-      abs:        ['abs','core','crunch','sit up','situp','plank','ab wheel','hollow','hanging leg'],
-      oblique:    ['oblique','side plank','russian twist','woodchop','cable twist'],
-      glute:      ['glute','hip thrust','bridge','rdl','deadlift','squat','lunge','step up'],
-      quad:       ['quad','squat','leg press','lunge','leg extension','front squat','goblet'],
-      hamstring:  ['hamstring','rdl','romanian','leg curl','deadlift','nordic','glute ham'],
-      calf:       ['calf','calves','calf raise','standing raise','seated raise'],
-    };
-    
-    const RECOVERY_HOURS = {
-      chest: 72, front_delt: 48, rear_delt: 48,
-      bicep: 36, tricep: 36, forearm: 24,
-      trap: 48, lat: 72, lower_back: 72,
-      abs: 24, oblique: 24,
-      glute: 72, quad: 72, hamstring: 72, calf: 48,
-    };
-    
-    const MUSCLE_ELEMENTS = {
-      chest:      ['m-chest-l', 'm-chest-r'],
-      front_delt: ['m-front-delt-l', 'm-front-delt-r'],
-      rear_delt:  ['m-rear-delt-l', 'm-rear-delt-r'],
-      bicep:      ['m-bicep-l', 'm-bicep-r'],
-      tricep:     ['m-tricep-l', 'm-tricep-r'],
-      forearm:    ['m-forearm-l', 'm-forearm-r', 'm-forearm-back-l', 'm-forearm-back-r'],
-      trap:       ['m-trap-l', 'm-trap-r'],
-      lat:        ['m-lat-l', 'm-lat-r'],
-      lower_back: ['m-lower-back'],
-      abs:        ['m-abs-1l','m-abs-1r','m-abs-2l','m-abs-2r','m-abs-3l','m-abs-3r'],
-      oblique:    ['m-oblique-l', 'm-oblique-r'],
-      glute:      ['m-glute-l', 'm-glute-r'],
-      quad:       ['m-quad-l', 'm-quad-r'],
-      hamstring:  ['m-hamstring-l', 'm-hamstring-r'],
-      calf:       ['m-calf-l', 'm-calf-r', 'm-calf-back-l', 'm-calf-back-r'],
-    };
-    
-    const MUSCLE_LABELS = {
-      chest: 'Chest', front_delt: 'Front Deltoids', rear_delt: 'Rear Deltoids',
-      bicep: 'Biceps', tricep: 'Triceps', forearm: 'Forearms',
-      trap: 'Traps', lat: 'Lats / Back', lower_back: 'Lower Back',
-      abs: 'Abs', oblique: 'Obliques',
-      glute: 'Glutes', quad: 'Quads', hamstring: 'Hamstrings', calf: 'Calves',
-    };
-    
-    function getRecoveryColor(hoursAgo, recoveryHours) {
-      const pct = Math.min(hoursAgo / recoveryHours, 1);
-      if (pct < 0.25) return '#ff3333';
-      if (pct < 0.50) return '#ff7700';
-      if (pct < 0.75) return '#ccbb00';
-      if (pct < 1.00) return '#88cc00';
-      return null;
-    }
-    
-    function detectMuscles(focusArea) {
-      if (!focusArea) return [];
-      const text = focusArea.toLowerCase();
-      const matched = [];
-      for (const [muscle, keywords] of Object.entries(MUSCLE_KEYWORDS)) {
-        if (keywords.some(kw => text.includes(kw))) matched.push(muscle);
-      }
-      return matched;
-    }
-    
-    function renderMuscleMap() {
-      const gymWorkouts = dashData?.recent_gym_workouts || [];
-      const muscleLastWorked = {};
-    
-      for (const workout of gymWorkouts) {
-        const muscles = detectMuscles(workout.focus_area);
-        const workedAt = new Date(workout.logged_at);
-        for (const muscle of muscles) {
-          if (!muscleLastWorked[muscle] || workedAt > muscleLastWorked[muscle]) {
-            muscleLastWorked[muscle] = workedAt;
-          }
-        }
-      }
-    
-      const now = new Date();
-      const workedList = [];
-    
-      // Reset all to default
-      for (const ids of Object.values(MUSCLE_ELEMENTS)) {
-        for (const id of ids) {
-          const el = document.getElementById(id);
-          if (el) {
-            el.setAttribute('fill', 'var(--s3)');
-            el.setAttribute('stroke', 'var(--border2)');
-          }
-        }
-      }
-    
-      // Apply recovery colors
-      for (const [muscle, lastWorked] of Object.entries(muscleLastWorked)) {
-        const hoursAgo = (now - lastWorked) / 3600000;
-        const recoveryHours = RECOVERY_HOURS[muscle] || 48;
-        const color = getRecoveryColor(hoursAgo, recoveryHours);
-        const pct = Math.min(hoursAgo / recoveryHours, 1);
-    
-        for (const id of (MUSCLE_ELEMENTS[muscle] || [])) {
-          const el = document.getElementById(id);
-          if (el) {
-            if (color) {
-              el.setAttribute('fill', color);
-              el.setAttribute('fill-opacity', '0.85');
-              el.setAttribute('stroke', color);
-            } else {
-              el.setAttribute('fill', 'rgba(34,204,68,0.18)');
-              el.setAttribute('stroke', 'rgba(34,204,68,0.4)');
-            }
-          }
-        }
-    
-        const hrsLeft = Math.max(recoveryHours - hoursAgo, 0);
-        workedList.push({ muscle, label: MUSCLE_LABELS[muscle] || muscle, hoursAgo, hrsLeft, pct, color });
-      }
-    
-      workedList.sort((a, b) => a.hoursAgo - b.hoursAgo);
-    
-      const listEl = document.getElementById('muscle-worked-list');
-      if (!workedList.length) {
-        listEl.innerHTML = `<div style="font-size:0.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:4px">No recent gym sessions</div>`;
-        return;
-      }
-    
-      listEl.innerHTML = workedList.map(m => {
-        const dotColor = m.color || '#22cc44';
-        const status = m.pct >= 1 ? 'Ready' : `${Math.round(m.hrsLeft)}h left`;
-        return `
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:7px;height:7px;border-radius:50%;background:${dotColor};flex-shrink:0"></div>
-            <span style="font-size:0.6rem;color:var(--text);font-family:'JetBrains Mono',monospace">${m.label}</span>
-            <span style="font-size:0.58rem;color:var(--muted2);margin-left:auto;font-family:'JetBrains Mono',monospace;white-space:nowrap">${status}</span>
-          </div>`;
-      }).join('');
-    }
-
-      <!-- Meals -->
-      <div class="card meals-card">
+<!-- Muscle Recovery Map -->
+      <div class="card" style="grid-column:1/3">
         <div class="card-accent-bar" style="background:var(--orange)"></div>
-        <div class="card-label">Meals Today</div>
-        <div class="meal-grid" id="meal-grid">
-          <!-- populated by JS -->
+        <div class="card-label">Muscle Recovery</div>
+        <div id="muscle-map-wrap" style="display:flex;gap:16px;justify-content:center;align-items:flex-start;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div style="font-size:0.58rem;font-family:'JetBrains Mono',monospace;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Front</div>
+            <svg id="muscle-front" viewBox="0 0 120 280" width="110" style="overflow:visible">
+              <ellipse id="m-neck" cx="60" cy="28" rx="10" ry="8" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-chest-l" d="M38,48 Q28,50 26,62 Q32,68 46,66 Q52,58 48,48 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-chest-r" d="M82,48 Q92,50 94,62 Q88,68 74,66 Q68,58 72,48 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <ellipse id="m-front-delt-l" cx="28" cy="50" rx="10" ry="12" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <ellipse id="m-front-delt-r" cx="92" cy="50" rx="10" ry="12" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-bicep-l" d="M18,64 Q12,72 14,86 Q20,90 26,86 Q28,72 24,64 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-bicep-r" d="M102,64 Q108,72 106,86 Q100,90 94,86 Q92,72 96,64 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-forearm-l" d="M14,88 Q10,100 12,114 Q18,116 24,114 Q26,100 26,88 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-forearm-r" d="M106,88 Q110,100 108,114 Q102,116 96,114 Q94,100 94,88 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <rect id="m-abs-1l" x="46" y="70" width="12" height="10" rx="3" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <rect id="m-abs-1r" x="62" y="70" width="12" height="10" rx="3" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <rect id="m-abs-2l" x="46" y="82" width="12" height="10" rx="3" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <rect id="m-abs-2r" x="62" y="82" width="12" height="10" rx="3" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <rect id="m-abs-3l" x="46" y="94" width="12" height="10" rx="3" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <rect id="m-abs-3r" x="62" y="94" width="12" height="10" rx="3" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-oblique-l" d="M38,72 Q30,82 32,100 Q40,104 46,96 Q46,82 44,70 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-oblique-r" d="M82,72 Q90,82 88,100 Q80,104 74,96 Q74,82 76,70 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-hip-l" d="M42,106 Q36,112 38,122 Q48,126 54,120 Q54,110 50,104 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-hip-r" d="M78,106 Q84,112 82,122 Q72,126 66,120 Q66,110 70,104 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-quad-l" d="M38,124 Q30,138 32,162 Q40,168 50,164 Q56,140 54,122 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-quad-r" d="M82,124 Q90,138 88,162 Q80,168 70,164 Q64,140 66,122 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <ellipse cx="41" cy="172" rx="10" ry="8" fill="var(--s2)" stroke="var(--border)" stroke-width="1"/>
+              <ellipse cx="79" cy="172" rx="10" ry="8" fill="var(--s2)" stroke="var(--border)" stroke-width="1"/>
+              <path id="m-calf-l" d="M34,182 Q30,196 32,216 Q38,220 46,216 Q48,196 48,180 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-calf-r" d="M86,182 Q90,196 88,216 Q82,220 74,216 Q72,196 72,180 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path d="M48,18 Q38,18 32,26 Q28,32 28,42 Q20,44 16,52 Q12,62 14,72 Q10,74 8,86 Q8,100 12,116 Q14,118 16,116 Q14,102 16,88 Q18,78 22,72 Q24,84 26,96 Q28,110 30,122 Q26,136 26,160 Q26,172 30,180 Q28,196 28,218 Q28,226 34,228 Q40,230 46,226 Q50,218 50,208 Q52,194 52,180 Q54,170 56,160 Q58,162 60,162 Q62,162 64,160 Q66,170 68,180 Q68,194 70,208 Q70,218 74,226 Q80,230 86,228 Q92,226 92,218 Q92,196 90,180 Q94,172 94,160 Q94,136 90,122 Q92,110 94,96 Q96,84 98,72 Q102,78 104,88 Q106,102 104,116 Q106,118 108,116 Q112,100 112,86 Q110,74 106,72 Q108,62 104,52 Q100,44 92,42 Q92,32 88,26 Q82,18 72,18 Q68,14 60,14 Q52,14 48,18 Z" fill="none" stroke="var(--border2)" stroke-width="1.5"/>
+              <ellipse cx="60" cy="12" rx="16" ry="14" fill="var(--s2)" stroke="var(--border2)" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:0.58rem;font-family:'JetBrains Mono',monospace;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Back</div>
+            <svg id="muscle-back" viewBox="0 0 120 280" width="110" style="overflow:visible">
+              <path id="m-trap-l" d="M60,30 Q50,32 38,42 Q36,50 40,56 Q52,52 60,46 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-trap-r" d="M60,30 Q70,32 82,42 Q84,50 80,56 Q68,52 60,46 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <ellipse id="m-rear-delt-l" cx="28" cy="52" rx="10" ry="12" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <ellipse id="m-rear-delt-r" cx="92" cy="52" rx="10" ry="12" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-tricep-l" d="M18,66 Q12,76 14,90 Q20,94 26,90 Q28,76 24,66 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-tricep-r" d="M102,66 Q108,76 106,90 Q100,94 94,90 Q92,76 96,66 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-forearm-back-l" d="M14,92 Q10,104 12,118 Q18,120 24,118 Q26,104 26,92 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-forearm-back-r" d="M106,92 Q110,104 108,118 Q102,120 96,118 Q94,104 94,92 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-lat-l" d="M38,54 Q26,66 26,86 Q26,100 34,108 Q44,112 50,104 Q52,88 48,68 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-lat-r" d="M82,54 Q94,66 94,86 Q94,100 86,108 Q76,112 70,104 Q68,88 72,68 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-lower-back" d="M44,108 Q40,120 42,132 Q52,138 60,138 Q68,138 78,132 Q80,120 76,108 Q68,112 60,112 Q52,112 44,108 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-glute-l" d="M38,132 Q30,142 32,158 Q40,166 52,162 Q58,150 56,134 Q48,130 38,132 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-glute-r" d="M82,132 Q90,142 88,158 Q80,166 68,162 Q62,150 64,134 Q72,130 82,132 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-hamstring-l" d="M34,162 Q28,178 30,202 Q38,208 50,204 Q54,180 52,162 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-hamstring-r" d="M86,162 Q92,178 90,202 Q82,208 70,204 Q66,180 68,162 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-calf-back-l" d="M32,206 Q28,220 30,238 Q38,242 46,238 Q48,220 48,206 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path id="m-calf-back-r" d="M88,206 Q92,220 90,238 Q82,242 74,238 Q72,220 72,206 Z" fill="var(--s3)" stroke="var(--border2)" stroke-width="1"/>
+              <path d="M48,18 Q38,18 32,26 Q28,32 28,42 Q20,44 16,52 Q12,62 14,72 Q10,74 8,86 Q8,100 12,116 Q14,118 16,116 Q14,102 16,88 Q18,78 22,72 Q24,84 26,96 Q28,110 30,122 Q26,136 26,160 Q26,172 30,180 Q28,196 28,218 Q28,226 34,228 Q40,230 46,226 Q50,218 50,208 Q52,194 52,180 Q54,170 56,160 Q58,162 60,162 Q62,162 64,160 Q66,170 68,180 Q68,194 70,208 Q70,218 74,226 Q80,230 86,228 Q92,226 92,218 Q92,196 90,180 Q94,172 94,160 Q94,136 90,122 Q92,110 94,96 Q96,84 98,72 Q102,78 104,88 Q106,102 104,116 Q106,118 108,116 Q112,100 112,86 Q110,74 106,72 Q108,62 104,52 Q100,44 92,42 Q92,32 88,26 Q82,18 72,18 Q68,14 60,14 Q52,14 48,18 Z" fill="none" stroke="var(--border2)" stroke-width="1.5"/>
+              <ellipse cx="60" cy="12" rx="16" ry="14" fill="var(--s2)" stroke="var(--border2)" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;justify-content:center;padding-top:24px">
+            <div style="font-size:0.58rem;font-family:'JetBrains Mono',monospace;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Recovery</div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:2px;background:#ff4444"></div><span style="font-size:0.62rem;color:var(--muted2)">Just worked</span></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:2px;background:#ff8800"></div><span style="font-size:0.62rem;color:var(--muted2)">Recovering</span></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:2px;background:#aacc00"></div><span style="font-size:0.62rem;color:var(--muted2)">Almost ready</span></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:2px;background:#22cc44"></div><span style="font-size:0.62rem;color:var(--muted2)">Fully recovered</span></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:2px;background:var(--s3);border:1px solid var(--border2)"></div><span style="font-size:0.62rem;color:var(--muted2)">Not tracked</span></div>
+            <div id="muscle-worked-list" style="margin-top:10px;display:flex;flex-direction:column;gap:3px"></div>
+          </div>
         </div>
-      </div>
-      <!-- Steps -->
-      <div class="card">
-        <div class="card-accent-bar" style="background:var(--lime)"></div>
-        <div class="card-label">Steps Today</div>
-        <div class="stat-val" style="color:var(--lime);font-size:2.8rem" id="stat-steps">—</div>
-        <div class="stat-sub" id="stat-steps-sub">/ 10,000 goal</div>
-        <div style="margin-top:12px;height:6px;background:var(--s3);border-radius:3px;overflow:hidden">
-          <div id="steps-progress-bar" style="height:100%;border-radius:3px;
-            background:linear-gradient(90deg,var(--lime),var(--blue));
-            width:0%;transition:width 1s ease"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:8px">
-          <span style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--muted2)"
-            id="stat-distance">— km</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--muted2)"
-            id="stat-active-cal">— cal active</span>
-        </div>
-      </div>
+      </div>    
+
       
     </div>
   </div>
